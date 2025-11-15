@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Production-Ready Dictation Tool</title>
+    
+    <!-- 1. Load Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- 2. Configure Custom Styles -->
+    <!-- Tailwind Config (REMOVED) -->
+    
+    <style>
+        /* --- Base & Body --- */
+        :root {
+            --color-gray-100: #f3f4f6;
+            --color-gray-200: #e5e7eb;
+            --color-gray-300: #d1d5db;
+            --color-gray-400: #9ca3af;
+            --color-gray-500: #6b7280;
+            --color-gray-600: #4b5563;
+            --color-gray-700: #374151;
+            --color-gray-800: #1f2937;
+            --color-gray-900: #111827;
+            --color-gray-950: #030712;
+            
+            --color-blue-300: #93c5fd;
+            --color-blue-400: #60a5fa;
+            --color-blue-700: #1d4ed8;
+            --color-blue-900: #1e3a8a;
+            
+            --color-indigo-400: #818cf8;
+            --color-indigo-500: #6366f1;
+            --color-indigo-600: #4f46e5;
+
+            --color-purple-400: #c084fc;
+
+            --color-red-200: #fecaca;
+            --color-red-300: #fca5a5;
+            --color-red-500: #ef4444;
+            --color-red-600: #dc2626;
+            --color-red-700: #b91c1c;
+            --color-red-900: #7f1d1d;
+
+            --color-green-400: #4ade80;
+            --color-green-500: #22c55e;
+            --color-emerald-600: #059669;
+
+            --color-yellow-400: #facc15;
+            --color-yellow-500: #eab308;
+            --color-orange-500: #f97316;
+
+            --color-pink-600: #ec4899;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-gray-900);
+            background-image: linear-gradient(180deg, var(--color-gray-900) 0%, #000000 100%);
+            color: var(--color-gray-200);
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            body {
+                padding: 2rem;
+            }
+        }
+
+        /* --- Utility Classes (Required by JS) --- */
+        .hidden {
+            display: none;
+        }
+        .bg-gray-500 {
+            background-color: var(--color-gray-500);
+        }
+        .bg-green-500 {
+            background-color: var(--color-green-500);
+        }
+        .opacity-50 {
+            opacity: 0.5;
+        }
+        .pointer-events-none {
+            pointer-events: none;
+        }
+
+        /* --- Main Layout --- */
+        .app-wrapper {
+            max-width: 56rem; /* 896px */
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 2.25rem; /* 36px */
+            line-height: 2.5rem;
+            font-weight: 700;
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            background-image: linear-gradient(to right, var(--color-blue-400), var(--color-indigo-400), var(--color-purple-400));
+        }
+
+        @media (min-width: 768px) {
+            header h1 {
+                font-size: 3rem; /* 48px */
+                line-height: 1;
+            }
+        }
+
+        header p {
+            font-size: 1.125rem; /* 18px */
+            line-height: 1.75rem;
+            color: var(--color-gray-400);
+            margin-top: 0.5rem;
+        }
+
+        /* --- Info & Error Messages --- */
+        .message-box {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(4px);
+        }
+        .message-box [data-lucide] {
+            width: 1.5rem;
+            height: 1.5rem;
+            flex-shrink: 0;
+        }
+        
+        #instructions {
+            background-color: rgba(30, 58, 138, 0.8); /* blue-900/80 */
+            border: 1px solid var(--color-blue-700);
+            color: var(--color-blue-300);
+        }
+        #instructions [data-lucide] {
+            color: var(--color-blue-300);
+        }
+
+        #error-message {
+            background-color: rgba(127, 29, 29, 0.8); /* red-900/80 */
+            border: 1px solid var(--color-red-700);
+            color: #ffffff;
+        }
+        #error-message [data-lucide] {
+            color: var(--color-red-300);
+        }
+
+        #close-error {
+            margin-left: auto;
+            color: var(--color-red-200);
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            line-height: 1;
+            cursor: pointer;
+        }
+        #close-error:hover {
+            color: #ffffff;
+        }
+
+        /* --- Main Content Area --- */
+        main {
+            background-color: rgba(31, 41, 55, 0.5); /* gray-800/50 */
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--color-gray-700);
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+            padding: 1.5rem;
+        }
+        @media (min-width: 768px) {
+            main {
+                padding: 2rem;
+            }
+        }
+
+        /* space-y-8 */
+        main > section + section {
+            margin-top: 2rem;
+        }
+
+        /* --- Section Styling --- */
+        main h2 {
+            font-size: 1.5rem; /* 24px */
+            line-height: 2rem;
+            font-weight: 600;
+            color: #ffffff;
+            border-bottom: 1px solid var(--color-gray-700);
+            padding-bottom: 0.5rem;
+        }
+
+        /* space-y-6 */
+        #stt-section > * + *,
+        #tts-controls > * + * {
+            margin-top: 1.5rem;
+        }
+
+        /* space-y-4 */
+        #dictation-section > * + * {
+             margin-top: 1rem;
+        }
+
+        /* --- Forms & Inputs --- */
+        label {
+            display: block;
+            font-size: 0.875rem; /* 14px */
+            line-height: 1.25rem;
+            font-weight: 500;
+            color: var(--color-gray-300);
+            margin-bottom: 0.5rem;
+        }
+
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: var(--color-gray-900);
+            border: 1px solid var(--color-gray-700);
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+            color: var(--color-gray-200);
+            /* Custom select arrow */
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+        }
+        select:focus {
+            outline: none;
+            border-color: var(--color-indigo-500);
+            box-shadow: 0 0 0 2px var(--color-indigo-500);
+        }
+
+        /* --- STT Section --- */
+        .stt-controls-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+        @media (min-width: 640px) {
+            .stt-controls-container {
+                flex-direction: row;
+            }
+        }
+
+        #start-button {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            background-image: linear-gradient(to right, var(--color-blue-500), var(--color-indigo-600));
+            color: #ffffff;
+            font-weight: 700;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            transition: all 300ms ease-in-out;
+        }
+        #start-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.5), 0 4px 6px -4px rgba(79, 70, 229, 0.5);
+        }
+        @media (min-width: 640px) {
+            #start-button {
+                width: auto;
+            }
+        }
+        
+        /* Listening state (toggled by JS) */
+        #start-button.listening {
+            background-image: linear-gradient(to right, var(--color-red-500), var(--color-pink-600));
+        }
+        #start-button.listening:hover {
+            box-shadow: 0 10px 15px -3px rgba(236, 72, 153, 0.5), 0 4px 6px -4px rgba(236, 72, 153, 0.5);
+        }
+
+        .status-box {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background-color: rgba(17, 24, 39, 0.5); /* gray-900/50 */
+            border-radius: 0.5rem;
+        }
+
+        #status-indicator {
+            width: 0.75rem;
+            height: 0.75rem;
+            border-radius: 9999px;
+            transition: background-color 0.3s ease;
+        }
+
+        #status-message {
+            color: var(--color-gray-300);
+            font-weight: 500;
+        }
+
+        .auto-playback-box {
+            display: flex;
+            align-items: center;
+            padding-top: 0.5rem;
+        }
+        .auto-playback-box > * + * {
+            margin-left: 0.75rem;
+        }
+        
+        #auto-playback-check {
+            width: 1.25rem;
+            height: 1.25rem;
+            border-radius: 0.25rem;
+            background-color: var(--color-gray-700);
+            border: 1px solid var(--color-gray-600);
+            color: var(--color-indigo-600);
+        }
+        #auto-playback-check:focus {
+            outline: none;
+            border-color: var(--color-indigo-500);
+            box-shadow: 0 0 0 2px var(--color-indigo-500);
+        }
+
+        #stt-unsupported,
+        #tts-unsupported {
+            color: var(--color-yellow-400);
+        }
+        #tts-unsupported {
+             color: var(--color-red-300);
+        }
+
+
+        /* --- Text Area & Utility Buttons --- */
+        
+        /* Production-Ready <textarea> Styling (from original) */
+        #dictation-box {
+            display: block;
+            width: 100%;
+            height: 24rem; /* 384px */
+            padding: 1rem; /* p-4 */
+            background-color: #030712; /* gray-950 equivalent */
+            color: #f3f4f6; /* gray-100 */
+            border-width: 2px;
+            border-color: #374151; /* gray-700 */
+            border-radius: 0.5rem; /* rounded-lg */
+            overflow-y: auto;
+            line-height: 1.5;
+            font-family: inherit;
+            font-size: 1rem; /* text-base */
+            box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.05); /* shadow-inner */
+            transition: all 0.3s;
+            resize: vertical; /* Allow vertical resize */
+        }
+        #dictation-box:focus {
+            outline: 2px solid transparent;
+            outline-offset: 2px;
+            border-color: #4f46e5; /* indigo-500 */
+            box-shadow: 0 0 0 2px #4f46e5; /* ring-2 ring-indigo-500 */
+        }
+        #dictation-box::placeholder {
+            color: #6b7280; /* gray-500 */
+        }
+
+        /* Custom scrollbar (from original) */
+        #dictation-box::-webkit-scrollbar { width: 10px; }
+        #dictation-box::-webkit-scrollbar-track { background: #1f2937; }
+        #dictation-box::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 5px; }
+        #dictation-box::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+
+        .utility-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        
+        .btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            transition: all 300ms ease;
+            border: none;
+            cursor: pointer;
+            color: #ffffff;
+        }
+        .btn [data-lucide] {
+            width: 1rem;
+            height: 1rem;
+        }
+        
+        #copy-button {
+            background-color: var(--color-gray-600);
+        }
+        #copy-button:hover {
+            background-color: var(--color-gray-500);
+        }
+        
+        #clear-button {
+            background-color: var(--color-red-700);
+        }
+        #clear-button:hover {
+            background-color: var(--color-red-600);
+        }
+
+        #copy-message {
+            color: var(--color-green-400);
+            font-size: 0.875rem; /* 14px */
+            line-height: 1.25rem;
+            margin-top: 0.5rem;
+        }
+
+        /* --- TTS Section --- */
+        #tts-section {
+            padding-top: 2rem;
+            border-top: 1px solid var(--color-gray-700);
+        }
+
+        .slider-grid {
+            display: grid;
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+            gap: 1.5rem;
+        }
+        @media (min-width: 768px) {
+            .slider-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        
+        #speed-value, #pitch-value {
+            font-weight: 700;
+        }
+
+        /* Slider styles (from original) */
+        input[type="range"] {
+            -webkit-appearance: none; appearance: none;
+            width: 100%; height: 8px;
+            background: #374151;
+            border-radius: 5px; outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 20px; height: 20px;
+            background: #6366f1;
+            cursor: pointer; border-radius: 50%;
+            border: 2px solid #e0e7ff;
+            transition: background 0.2s ease-in-out;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+             background: #818cf8;
+        }
+
+        .tts-buttons-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        
+        .tts-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #ffffff;
+            font-weight: 700;
+            padding: 0.5rem 1.25rem;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            transition: all 300ms ease;
+        }
+        .tts-btn [data-lucide] {
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+        
+        .tts-btn:hover {
+            transform: scale(1.05);
+        }
+        .tts-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        #play-button {
+             background-image: linear-gradient(to right, var(--color-green-500), var(--color-emerald-600));
+        }
+        #play-button:hover:not(:disabled) {
+            box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.5), 0 4px 6px -4px rgba(5, 150, 105, 0.5);
+        }
+
+        #pause-button {
+             background-image: linear-gradient(to right, var(--color-yellow-500), var(--color-orange-500));
+        }
+        #pause-button:hover:not(:disabled) {
+            box-shadow: 0 10px 15px -3px rgba(249, 115, 22, 0.5), 0 4px 6px -4px rgba(249, 115, 22, 0.5);
+        }
+        
+        #stop-button {
+             background-image: linear-gradient(to right, var(--color-red-500), var(--color-pink-600));
+        }
+        #stop-button:hover:not(:disabled) {
+            box-shadow: 0 10px 15px -3px rgba(236, 72, 153, 0.5), 0 4px 6px -4px rgba(236, 72, 153, 0.5);
+        }
+
+        /* --- Footer --- */
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            color: var(--color-gray-500);
+        }
+
+        /* --- Animations (from original) --- */
+        .listening [data-lucide="mic"] {
+            animation: pulse 1.5s infinite ease-in-out;
+            color: #fca5a5;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+        }
+    </style>
+</head>
+<body>
+
+    <!--
+        All Tailwind classes have been removed and replaced by the CSS in the <style> block.
+        HTML structure is identical.
+        JS relies on IDs, so it continues to work perfectly.
+        Utility classes like 'hidden' are preserved where JS needs to toggle them.
+    -->
+    <div class="app-wrapper">
+        
+        <header>
+            <h1>Pro Dictation Tool</h1>
+            <p>Speak, Edit, & Listen with Style</p>
+        </header>
+
+        <div id="instructions" class="message-box">
+            <i data-lucide="info"></i>
+            <div>
+                <strong>Getting Started:</strong> For this tool to work, your browser requires a secure connection (https or localhost). <strong>It will not work if you open the file directly from your computer.</strong>
+            </div>
+        </div>
+
+        <div id="error-message" class="message-box hidden">
+            <i data-lucide="alert-triangle"></i>
+            <span id="error-text"></span>
+            <button id="close-error" aria-label="Close error message">&times;</button>
+        </div>
+
+        <main>
+
+            <!-- Section 1: Dictation (Speech-to-Text) -->
+            <section id="stt-section">
+                <h2>Dictation</h2>
+                
+                <div>
+                    <label for="stt-language-select">Dictation Language</label>
+                    <select id="stt-language-select"></select>
+                </div>
+                
+                <div class="stt-controls-container">
+                    <button id="start-button">
+                        <i data-lucide="mic"></i>
+                        <span>Start Dictation</span>
+                    </button>
+                    <div class="status-box">
+                        <div id="status-indicator" class="bg-gray-500"></div>
+                        <span id="status-message">Status: Idle</span>
+                    </div>
+                </div>
+
+                <div class="auto-playback-box">
+                    <input type="checkbox" id="auto-playback-check">
+                    <label for="auto-playback-check">Auto-playback on Stop</label>
+                </div>
+
+                <p id="stt-unsupported" class="hidden">Speech-to-Text is not supported in this browser. Please use Chrome, Edge, or Safari.</p>
+            </section>
+
+            <!-- Section 2: Text Area & Utilities -->
+            <section id="dictation-section">
+                <label for="dictation-box">Your Text</label>
+                <textarea id="dictation-box" 
+                          placeholder="Your dictated text will appear here..."></textarea>
+                
+                <div class="utility-buttons">
+                    <button id="copy-button" class="btn">
+                        <i data-lucide="clipboard"></i>
+                        <span>Copy</span>
+                    </button>
+                    <button id="clear-button" class="btn">
+                        <i data-lucide="trash-2"></i>
+                        <span>Clear</span>
+                    </button>
+                </div>
+                <div id="copy-message" class="hidden">Copied to clipboard!</div>
+            </section>
+
+            <!-- Section 3: Playback (Text-to-Speech) -->
+            <section id="tts-section">
+                <h2>Playback</h2>
+                <div id="tts-controls">
+                    <div>
+                        <label for="tts-voice-select">Playback Voice</label>
+                        <select id="tts-voice-select">
+                            <option>Loading voices...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="slider-grid">
+                        <div>
+                            <label for="speed-slider">Speed: <span id="speed-value">1.0</span>x</label>
+                            <input type="range" id="speed-slider" min="0.5" max="2" step="0.1" value="1">
+                        </div>
+                        <div>
+                            <label for="pitch-slider">Pitch: <span id="pitch-value">1.0</span></label>
+                            <input type="range" id="pitch-slider" min="0.1" max="2" step="0.1" value="1">
+                        </div>
+                    </div>
+
+                    <div class="tts-buttons-container">
+                        
+                        <button id="play-button" class="tts-btn">
+                            <i data-lucide="play"></i>
+                            <span>Play</span>
+                        </button>
+                        
+                        <button id="pause-button" class="tts-btn" disabled>
+                            <i data-lucide="pause"></i>
+                            <span>Pause</span>
+                        </button>
+
+                        <button id="stop-button" class="tts-btn" disabled>
+                            <i data-lucide="stop-circle"></i>
+                            <span>Stop</span>
+                        </button>
+                    </div>
+                </div>
+                <p id="tts-unsupported" class="hidden">Text-to-Speech is not supported in this browser.</p>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 Pro Dictation Tool. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- 1. CORE ELEMENTS & ERROR HANDLING ---
+            const dictationBox = document.getElementById('dictation-box'); 
+            const copyButton = document.getElementById('copy-button');
+            const clearButton = document.getElementById('clear-button');
+            const copyMessage = document.getElementById('copy-message');
+            const errorMessage = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            const closeErrorButton = document.getElementById('close-error');
+            const instructions = document.getElementById('instructions');
+
+            function showError(message) {
+                errorText.textContent = message;
+                errorMessage.classList.remove('hidden');
+                instructions.classList.add('hidden'); 
+            }
+            closeErrorButton.onclick = () => errorMessage.classList.add('hidden');
+
+            // --- 2. SPEECH-TO-TEXT (DICTATION) ---
+            const sttSection = document.getElementById('stt-section');
+            const startButton = document.getElementById('start-button');
+            const startButtonText = startButton.querySelector('span');
+            const startButtonIcon = startButton.querySelector('i');
+            const statusIndicator = document.getElementById('status-indicator');
+            const statusMessage = document.getElementById('status-message');
+            const sttUnsupported = document.getElementById('stt-unsupported');
+            const sttLanguageSelect = document.getElementById('stt-language-select');
+            const autoPlaybackCheck = document.getElementById('auto-playback-check');
+
+            const sttLanguageCodes = [
+                { code: 'en-US', name: 'English (United States)' }, { code: 'en-GB', name: 'English (United Kingdom)' },
+                { code: 'en-AU', name: 'English (Australia)' }, { code: 'en-IN', name: 'English (India)' },
+                { code: 'hi-IN', name: 'हिन्दी (भारत)' },
+                { code: 'es-ES', name: 'Español (España)' }, { code: 'es-MX', name: 'Español (México)' },
+                { code: 'fr-FR', name: 'Français (France)' }, { code: 'de-DE', name: 'Deutsch (Deutschland)' },
+                { code: 'it-IT', name: 'Italiano (Italia)' }, { code: 'ja-JP', name: '日本語 (日本)' },
+                { code: 'ko-KR', name: '한국어 (대한민국)' }, { code: 'pt-BR', name: 'Português (Brasil)' },
+                { code: 'ru-RU', name: 'Русский (Россия)' }, { code: 'zh-CN', name: '中文 (中国大陆)' },
+                { code: 'zh-TW', name: '中文 (臺灣)' }, { code: 'ar-SA', name: 'العربية (السعودية)' },
+                { code: 'nl-NL', name: 'Nederlands (Nederland)' }, { code: 'pl-PL', name: 'Polski (Polska)' },
+                { code: 'sv-SE', name: 'Svenska (Sverige)' }, { code: 'tr-TR', name: 'Türkçe (Türkiye)' },
+            ];
+
+            function populateSttLanguages() {
+                sttLanguageCodes.sort((a, b) => a.name.localeCompare(b.name)).forEach(lang => {
+                    const option = document.createElement('option');
+                    option.value = lang.code;
+                    option.textContent = lang.name;
+                    sttLanguageSelect.appendChild(option);
+                });
+                sttLanguageSelect.value = 'en-US';
+            }
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            let recognition;
+            let userWantsToListen = false; 
+
+            /**
+             * MODIFIED: This function no longer uses classList.replace() for colors.
+             * It just toggles the '.listening' class on the start button
+             * and swaps color classes on the status indicator.
+             */
+            function updateSttUi(isListening) {
+                if (isListening) {
+                    startButtonText.textContent = 'Stop Dictation';
+                    startButtonIcon.setAttribute('data-lucide', 'mic-off');
+                    startButton.classList.add('listening'); // JS toggles this class
+                    
+                    statusMessage.textContent = 'Status: Listening...';
+                    statusIndicator.classList.remove('bg-gray-500'); // JS swaps classes
+                    statusIndicator.classList.add('bg-green-500');
+                } else {
+                    startButtonText.textContent = 'Start Dictation';
+                    startButtonIcon.setAttribute('data-lucide', 'mic');
+                    startButton.classList.remove('listening');
+                    
+                    statusMessage.textContent = 'Status: Idle';
+                    statusIndicator.classList.remove('bg-green-500');
+                    statusIndicator.classList.add('bg-gray-500');
+                }
+                lucide.createIcons();
+            }
+            
+            function initializeRecognition() {
+                if (!SpeechRecognition) return;
+                
+                if (recognition) {
+                    recognition.stop();
+                    recognition = null;
+                }
+
+                recognition = new SpeechRecognition();
+                recognition.continuous = true; 
+                recognition.interimResults = false;
+                recognition.lang = sttLanguageSelect.value;
+
+                recognition.onstart = () => {
+                    updateSttUi(true);
+                    instructions.classList.add('hidden'); 
+                };
+
+                recognition.onend = () => {
+                    if (userWantsToListen) {
+                        console.log('STT timeout detected. Restarting recognition...');
+                        try { recognition.start(); } 
+                        catch(e) {
+                            showError('Dictation stalled. Please try stopping and starting again.');
+                            userWantsToListen = false;
+                            updateSttUi(false);
+                        }
+                    } else {
+                        updateSttUi(false);
+                        if (autoPlaybackCheck.checked) {
+                            playButton.click(); 
+                        }
+                    }
+                };
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[event.results.length - 1][0].transcript.trim() + ' ';
+                    
+                    const { scrollTop, scrollHeight, clientHeight } = dictationBox;
+                    const atBottom = (scrollTop + clientHeight) >= scrollHeight - 30; 
+                    
+                    dictationBox.value += transcript;
+                    
+                    if (atBottom) {
+                        dictationBox.scrollTop = dictationBox.scrollHeight; 
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                        showError('Microphone access was denied. Please allow microphone access in your browser settings.');
+                        userWantsToListen = false;
+                    } else if (event.error === 'no-speech') {
+                        console.warn('No speech detected. Mic is still active.');
+                    } else if (event.error === 'network') {
+                        showError('Network error. Please check your internet connection.');
+                        userWantsToListen = false;
+                    } else if (event.error === 'audio-capture') {
+                         showError('No microphone found. Please check your hardware.');
+                         userWantsToListen = false;
+                    } else {
+                        showError(Dictation error: ${event.error}. Please try again.);
+                        userWantsToListen = false;
+                    }
+                    updateSttUi(false); 
+                };
+            }
+
+            if (SpeechRecognition) {
+                populateSttLanguages();
+                initializeRecognition();
+                sttLanguageSelect.onchange = initializeRecognition;
+
+                startButton.onclick = () => {
+                    if (internalTtsState !== 'idle') {
+                        stopButton.click(); 
+                    }
+
+                    userWantsToListen = !userWantsToListen;
+                    if (userWantsToListen) {
+                        try { recognition.start(); } 
+                        catch (e) {
+                            showError('Could not start dictation. Please try again.');
+                            userWantsToListen = false;
+                        }
+                    } else {
+                        recognition.stop();
+                    }
+                };
+            } else {
+                sttUnsupported.classList.remove('hidden');
+                // We add these classes via JS to disable the section
+                sttSection.classList.add('opacity-50');
+                sttSection.classList.add('pointer-events-none');
+                instructions.classList.add('hidden');
+            }
+
+            // --- 3. UTILITY BUTTONS (COPY, CLEAR) ---
+
+            copyButton.onclick = () => {
+                const text = dictationBox.value;
+                if (!text) return; 
+                
+                try {
+                    dictationBox.select();
+                    document.execCommand('copy'); // Reliable in iframes
+                    
+                    copyMessage.classList.remove('hidden');
+                    setTimeout(() => copyMessage.classList.add('hidden'), 2000);
+                } catch (err) {
+                    showError('Failed to copy text. Your browser may not support this.');
+                }
+            };
+
+            clearButton.onclick = () => {
+                dictationBox.value = '';
+                if (synth.speaking || internalTtsState === 'paused') {
+                    synth.cancel();
+                }
+                updateTtsButtonStates('idle');
+            };
+
+            // --- 4. TEXT-TO-SPEECH (PLAYBACK) ---
+            const ttsSection = document.getElementById('tts-section');
+            const playButton = document.getElementById('play-button');
+            const pauseButton = document.getElementById('pause-button');
+            // const resumeButton = ... (REMOVED)
+            const stopButton = document.getElementById('stop-button');
+            
+            const voiceSelect = document.getElementById('tts-voice-select');
+            const speedSlider = document.getElementById('speed-slider');
+            const speedValue = document.getElementById('speed-value');
+            const pitchSlider = document.getElementById('pitch-slider');
+            const pitchValue = document.getElementById('pitch-value');
+            const ttsControls = document.getElementById('tts-controls');
+            const ttsUnsupported = document.getElementById('tts-unsupported');
+
+            const synth = window.speechSynthesis;
+            let voices = [];
+            let currentUtterance = null;
+            let internalTtsState = 'idle';
+
+            // --- TTS Voice Population (with Curated Lists) ---
+            const CURATED_VOICES = {
+                "English": [
+                    { name: "Google US English", gender: "female", lang: "en-US" },
+                    { name: "Microsoft Zira - English (United States)", gender: "female", lang: "en-US" },
+                    { name: "Google UK English Female", gender: "female", lang: "en-GB" },
+                    { name: "Microsoft Susan - English (United Kingdom)", gender: "female", lang: "en-GB" },
+                    { name: "Samantha", gender: "female", lang: "en-US" }, { name: "Karen", gender: "female", lang: "en-AU" },
+                    { name: "Google US English", gender: "male", lang: "en-US" },
+                    { name: "Microsoft David - English (United States)", gender: "male", lang: "en-US" },
+                    { name: "Google UK English Male", gender: "male", lang: "en-GB" },
+                    { name: "Microsoft George - English (United Kingdom)", gender: "male", lang: "en-GB" },
+                    { name: "Daniel", gender: "male", lang: "en-GB" },
+                ],
+                "Hindi": [
+                    { name: "Google हिन्दी", gender: "female", lang: "hi-IN" },
+                    { name: "Microsoft Kalpana - Hindi (India)", gender: "female", lang: "hi-IN" },
+                    { name: "Lekha", gender: "female", lang: "hi-IN" },
+                    { name: "Google हिन्दी", gender: "male", lang: "hi-IN" },
+                    { name: "Microsoft Hemant - Hindi (India)", gender: "male", lang: "hi-IN" },
+                    { name: "Rishi", gender: "male", lang: "hi-IN" }
+                ]
+            };
+
+            function populateVoiceList() {
+                voices = synth.getVoices();
+                if (voices.length === 0) {
+                    setTimeout(populateVoiceList, 100);
+                    return;
+                }
+                
+                voiceSelect.innerHTML = ''; 
+
+                let foundCuratedVoices = { English: [], Hindi: [] };
+                let otherVoices = {}; 
+
+                voices.forEach(voice => {
+                    let found = false;
+                    for (const v of CURATED_VOICES.English) {
+                        if (voice.name === v.name && voice.lang === v.lang) {
+                            foundCuratedVoices.English.push(voice);
+                            found = true; break;
+                        }
+                    }
+                    if (found) return;
+                    for (const v of CURATED_VOICES.Hindi) {
+                        if (voice.name === v.name && voice.lang === v.lang) {
+                            foundCuratedVoices.Hindi.push(voice);
+                            found = true; break;
+                        }
+                    }
+                    if (found) return;
+                    
+                    if (!otherVoices[voice.lang]) otherVoices[voice.lang] = [];
+                    otherVoices[voice.lang].push(voice);
+                });
+
+                const addVoiceOption = (voice) => {
+                    const option = document.createElement('option');
+                    option.textContent = voice.name;
+                    option.setAttribute('data-name', voice.name);
+                    option.setAttribute('data-lang', voice.lang);
+                    return option;
+                };
+
+                if (foundCuratedVoices.English.length > 0) {
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.label = "English (Curated)";
+                    foundCuratedVoices.English.forEach(v => optgroup.appendChild(addVoiceOption(v)));
+                    voiceSelect.appendChild(optgroup);
+                }
+                if (foundCuratedVoices.Hindi.length > 0) {
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.label = "Hindi (Curated)";
+                    foundCuratedVoices.Hindi.forEach(v => optgroup.appendChild(addVoiceOption(v)));
+                    voiceSelect.appendChild(optgroup);
+                }
+
+                const otherLangs = Object.keys(otherVoices).sort();
+                otherLangs.forEach(lang => {
+                    const optgroup = document.createElement('optgroup');
+                    try {
+                        optgroup.label = Other (${new Intl.DisplayNames(['en'], {type: 'language'}).of(lang) || lang});
+                    } catch (e) { optgroup.label = Other (${lang}); }
+                    
+                    otherVoices[lang].sort((a,b) => a.name.localeCompare(b.name)).forEach(v => optgroup.appendChild(addVoiceOption(v)));
+                    voiceSelect.appendChild(optgroup);
+                });
+
+                const defaultEn = voiceSelect.querySelector('[data-lang="en-US"]');
+                if (defaultEn) defaultEn.selected = true;
+            }
+            // --- End Voice Population ---
+
+
+            /**
+             * Manages the state of the 3 TTS buttons.
+             * @param {'idle' | 'playing' | 'paused'} state - The current TTS state.
+             */
+            function updateTtsButtonStates(state) {
+                internalTtsState = state;
+                
+                if (state === 'idle') {
+                    playButton.disabled = false;
+                    pauseButton.disabled = true;
+                    stopButton.disabled = true;
+                } else if (state === 'playing') {
+                    playButton.disabled = true; 
+                    pauseButton.disabled = false;
+                    stopButton.disabled = false;
+                } else if (state === 'paused') {
+                    playButton.disabled = false; 
+                    pauseButton.disabled = true;
+                    stopButton.disabled = false;
+                }
+            }
+
+            
+            function autoSelectVoice() {
+                const dictationLang = sttLanguageSelect.value;
+                const options = Array.from(voiceSelect.options);
+                let voiceToSelect = options.find(opt => opt.getAttribute('data-lang') === dictationLang);
+                if (!voiceToSelect) {
+                    const baseLang = dictationLang.split('-')[0];
+                    voiceToSelect = options.find(opt => opt.getAttribute('data-lang').startsWith(baseLang));
+                }
+                if (!voiceToSelect) {
+                    voiceToSelect = options.find(opt => opt.getAttribute('data-lang').startsWith('en'));
+                }
+                if (voiceToSelect) {
+                    voiceSelect.value = voiceToSelect.value;
+                }
+            }
+
+            /**
+             * The main speech function.
+             * @param {string} text - The entire text from the textarea.
+             */
+            function speak(text) {
+                if (synth.speaking) synth.cancel(); 
+                
+                if (!text) {
+                    updateTtsButtonStates('idle');
+                    return;
+                }
+
+                currentUtterance = new SpeechSynthesisUtterance(text);
+                
+                const selectedOption = voiceSelect.options[voiceSelect.selectedIndex];
+                const selectedVoiceName = selectedOption.getAttribute('data-name');
+                currentUtterance.voice = voices.find(v => v.name === selectedVoiceName);
+                currentUtterance.rate = parseFloat(speedSlider.value);
+                currentUtterance.pitch = parseFloat(pitchSlider.value);
+
+                // --- Event Handlers ---
+                currentUtterance.onstart = () => {
+                    updateTtsButtonStates('playing');
+                };
+
+                currentUtterance.onend = () => {
+                    updateTtsButtonStates('idle');
+                };
+
+                currentUtterance.onerror = (event) => {
+                    showError(Playback error: ${event.error});
+                    updateTtsButtonStates('idle');
+                };
+
+                synth.speak(currentUtterance);
+            }
+
+            // --- TTS Initialization ---
+            if (synth) {
+                synth.onvoiceschanged = populateVoiceList;
+                populateVoiceList();
+
+                playButton.onclick = () => {
+                    if (userWantsToListen) {
+                        startButton.click(); 
+                    }
+                    const text = dictationBox.value;
+                    if (!text) {
+                        showError("There is no text to play.");
+                        return;
+                    }
+                    
+                    autoSelectVoice(); 
+                    speak(text); // Always play from the beginning
+                };
+
+                pauseButton.onclick = () => {
+                    if (internalTtsState === 'playing') {
+                        synth.cancel(); // Stop speech
+                        updateTtsButtonStates('paused'); // Set state to paused
+                    }
+                };
+
+                stopButton.onclick = () => {
+                    if (synth.speaking || internalTtsState === 'paused') {
+                        synth.cancel();
+                    }
+                    updateTtSButtonStates('idle');
+                };
+                
+                window.onbeforeunload = () => {
+                    if (synth.speaking || synth.paused) synth.cancel();
+                };
+
+                speedSlider.oninput = () => speedValue.textContent = parseFloat(speedSlider.value).toFixed(1);
+                pitchSlider.oninput = () => pitchValue.textContent = parseFloat(pitchSlider.value).toFixed(1);
+
+                updateTtsButtonStates('idle');
+
+            } else {
+                ttsControls.classList.add('hidden');
+                ttsUnsupported.classList.remove('hidden');
+                instructions.classList.add('hidden');
+            }
+            
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
