@@ -8,9 +8,6 @@
     <!-- 1. Load Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     
-    <!-- 2. Configure Custom Styles -->
-    <!-- Tailwind Config (REMOVED) -->
-    
     <style>
         /* --- Base & Body --- */
         :root {
@@ -1093,7 +1090,7 @@
                     if (synth.speaking || internalTtsState === 'paused') {
                         synth.cancel();
                     }
-                    updateTtSButtonStates('idle');
+                    updateTtsButtonStates('idle');
                 };
                 
                 window.onbeforeunload = () => {
